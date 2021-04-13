@@ -1,0 +1,67 @@
+﻿@page "/"
+@inject IHttpClientFactory _clientFactory
+@inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+
+<div class="header">
+    <h2>Blog Name</h2>
+</div>
+
+<div class="row">
+    <div class="leftcolumn">
+
+        @if (!string.IsNullOrWhiteSpace(errormsg))
+        {
+            <div class="h2">@errormsg</div>
+        }
+        else if (posts is null)
+        {
+            <div class="h4">Loading...</div>
+        }
+        else
+        {
+            @if (posts.Count > 0)
+             {
+                @foreach (var p in posts)
+                 {
+                    <div class="card">
+                        <h2>@p.author</h2>
+                        <p>@p.content</p>
+                    </div>
+                    <button class="btn btn-primary" @onclick="() => navigate(p.id)">Edit</button>
+                 }
+             }
+        }
+
+
+
+    </div>
+
+</div>
+
+@code {
+    List<Posts> posts = new List<Posts>();
+    string errormsg;
+    private void navigate(int id)
+    {
+        navigationManager.NavigateTo($"/edit/{id}");
+    }
+    private async Task<List<Posts>>getPosts(HttpClient client)
+    {
+        return await client.GetFromJsonAsync<List<Posts>>("https://localhost:44362/api/Posts");
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        HttpClient client = _clientFactory.CreateClient();
+
+        try
+        {
+            posts = await getPosts(client);
+            errormsg = null;
+        }
+        catch (Exception e)
+        {
+            errormsg = $"There was an error getting our posts: {e.Message}";
+        }
+
+    }
+}

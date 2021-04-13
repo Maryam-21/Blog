@@ -1,0 +1,58 @@
+﻿@page "/edit/{postID}"
+@page "/edit"
+@using System.Net.Http;
+@using System.Text;
+@using Blog.Data
+@inject IHttpClientFactory _clientFactory
+@inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+
+
+<div class="container">
+    <form action="/">
+        <label for="subject">Content</label>
+        <input type="text" id="subject" name="subject"  style="height:200px" @bind="newContent" >
+        <button class="btn btn-primary" @onclick="editPost">Done</button>
+    </form>
+</div>
+
+@code {
+    [Parameter]
+    public string postID { get; set; }
+    private int pid;
+    private string newContent { get; set; }
+    private List<Posts> p = new List<Posts>();
+    private string errormsg;
+
+    private async Task<List<Posts>> getPosts(HttpClient client)
+    {
+
+        return await client.GetFromJsonAsync<List<Posts>>($"https://localhost:44362/api/Posts");
+    }
+    protected override void OnInitialized()
+    {
+        pid = int.Parse(postID)-1;
+    }
+
+    protected async override Task OnParametersSetAsync()
+    {
+        HttpClient client = _clientFactory.CreateClient();
+        try
+        {
+            p = await getPosts(client);
+            newContent = p[pid].content;
+            errormsg = null;
+        }
+        catch (Exception e)
+        {
+            newContent = $"There was an error getting our posts: {e.Message}";
+        }
+    }
+
+    private async void editPost()
+    {
+        p[pid].content = newContent;
+        var postJson = new StringContent(JsonSerializer.Serialize(p[pid]),Encoding.UTF8,"application/json");
+        HttpClient client = _clientFactory.CreateClient();
+        HttpResponseMessage response = await client.PutAsync($"https://localhost:44362/api/Posts/{pid+1}", postJson);
+    }
+}
